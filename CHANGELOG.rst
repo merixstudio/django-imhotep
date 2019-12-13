@@ -3,6 +3,12 @@ Changelog
 =========
 
 
+0.2.3 (unreleased)
+==================
+
+* Replace ``djangorestframework-jwt`` by fork ``drf-jwt``
+
+
 0.2.2 (2019-05-21)
 ==================
 
