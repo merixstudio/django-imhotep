@@ -1,13 +1,33 @@
 import pytest
+import re
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 
 from trench.utils import create_secret, generate_backup_codes
+from django.conf import settings
 
 
 User = get_user_model()
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--hasher", action="store", default="PBKDF2", help="Options: PBKDF2, PBKDF2SHA1, Argon2 or BCrypt"
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def set_hasher(request):
+    parse_hasher: str = request.config.getoption("--hasher")
+    hashers_list = settings.PASSWORD_HASHERS
+    hashers_test: list = [hasher for hasher in hashers_list if re.search(parse_hasher, hasher, re.IGNORECASE)]
+
+    if hashers_test:
+        settings.PASSWORD_HASHERS = hashers_test
+    else:
+        raise ValueError(f"Cannot set the hasher to: {parse_hasher}")
 
 
 @pytest.fixture()
@@ -101,7 +121,7 @@ def active_user_with_backup_codes():
         email='cleopatra@pyramids.eg',
     )
     backup_codes = generate_backup_codes()
-    encrypted_backup_codes = ','.join([make_password(_) for _ in backup_codes])
+    encrypted_backup_codes = '-'.join([make_password(_) for _ in backup_codes])
     if created:
         user.set_password('secretkey'),
         user.is_active = True
@@ -127,7 +147,7 @@ def active_user_with_many_otp_methods():
         email='ramses@thegreat.eg',
     )
     backup_codes = generate_backup_codes()
-    encrypted_backup_codes = ','.join([make_password(_) for _ in backup_codes])
+    encrypted_backup_codes = '-'.join([make_password(_) for _ in backup_codes])
     if created:
         user.set_password('secretkey'),
         user.is_active = True
